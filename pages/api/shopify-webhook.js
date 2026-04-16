@@ -8,7 +8,7 @@ export const config = {
   },
 };
 
-const TOKEN_EXPIRY_DAYS = 7;
+const BOOKING_URL_BASE = "https://oahumedspa.ai/book/consultation";
 
 // ── Raw body reader ───────────────────────────────────────────────────────────
 
@@ -75,41 +75,26 @@ export default async function handler(req, res) {
 
     console.log("[shopify-webhook] Resolved product name:", productName);
 
-    const orderId = body?.id ?? null;
     const email = body?.email ?? body?.customer?.email ?? "";
-    const firstName = body?.customer?.first_name ?? "";
-    const lastName = body?.customer?.last_name ?? "";
 
     // ── Route by product ───────────────────────────────────────────────────
     if (productName.trim() === "Consultation") {
       const token = crypto.randomBytes(32).toString("hex");
-      const now = new Date();
-      const expiresAt = new Date(now);
-      expiresAt.setDate(expiresAt.getDate() + TOKEN_EXPIRY_DAYS);
 
       await saveBookingToken({
         token,
-        used: false,
-        productName,
-        orderId,
         email,
-        firstName,
-        lastName,
-        createdAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
+        product: "Consultation",
+        used: false,
+        createdAt: new Date().toISOString(),
       });
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-      const protectedBookingUrl = `${appUrl}/book/consultation?token=${token}`;
+      const bookingLink = `${BOOKING_URL_BASE}?token=${token}`;
 
-      console.log(
-        "[shopify-webhook] Protected booking URL generated:",
-        protectedBookingUrl,
-      );
+      console.log("[shopify-webhook] Token:", token);
+      console.log("[shopify-webhook] Booking link:", bookingLink);
 
-      return res
-        .status(200)
-        .json({ success: true, productName, protectedBookingUrl });
+      return res.status(200).json({ success: true, bookingLink, token });
     }
 
     // Unrecognised product — acknowledge receipt without error so Shopify
