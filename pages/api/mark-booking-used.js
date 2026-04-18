@@ -1,10 +1,17 @@
 // ── Upstash Redis helpers ─────────────────────────────────────────────────────
 
 async function redisCommand(...args) {
-  const res = await fetch(process.env.KV_REST_API_URL, {
+  const kvUrl = process.env.KV_REST_API_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN;
+  if (!kvUrl || !kvToken) {
+    throw new Error(
+      "KV_REST_API_URL or KV_REST_API_TOKEN is not set. Add them to Vercel Environment Variables.",
+    );
+  }
+  const res = await fetch(kvUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+      Authorization: `Bearer ${kvToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(args),
