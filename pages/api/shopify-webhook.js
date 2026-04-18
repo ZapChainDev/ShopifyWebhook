@@ -8,7 +8,7 @@ export const config = {
   },
 };
 
-const BOOKING_URL_BASE = "https://oahumedspa.ai/book/consultation";
+const BOOKING_URL_BASE = `${process.env.NEXT_PUBLIC_APP_URL}/book/consultation`;
 const TOKEN_EXPIRY_DAYS = 7;
 
 // ── Helper: read the raw request body as a Buffer ────────────────────────────
