@@ -1,11 +1,11 @@
 // ── Upstash Redis helper ──────────────────────────────────────────────────────
 
 async function getRedisToken(token) {
-  const kvUrl = process.env.KV_REST_API_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN;
+  const kvUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!kvUrl || !kvToken) {
     throw new Error(
-      "KV_REST_API_URL or KV_REST_API_TOKEN is not set. Add them to Vercel Environment Variables.",
+      "UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN is not set. Add them to Vercel Environment Variables.",
     );
   }
   const key = `booking_token:${token}`;
