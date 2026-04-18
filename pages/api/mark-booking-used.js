@@ -1,8 +1,34 @@
-import {
-  getBookingToken,
-  isTokenExpired,
-  markBookingTokenUsed,
-} from "../../lib/tokenStore";
+// ── Upstash Redis helpers ─────────────────────────────────────────────────────
+
+async function redisCommand(...args) {
+  const res = await fetch(process.env.KV_REST_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) {
+    throw new Error(`Upstash Redis command failed with status ${res.status}`);
+  }
+  const data = await res.json();
+  return data.result;
+}
+
+async function getRedisToken(token) {
+  const key = `booking_token:${token}`;
+  const result = await redisCommand("GET", key);
+  if (result === null || result === undefined) return null;
+  return JSON.parse(result);
+}
+
+async function setRedisToken(token, record) {
+  const key = `booking_token:${token}`;
+  await redisCommand("SET", key, JSON.stringify(record));
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -18,19 +44,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const record = await getBookingToken(token);
+    const record = await getRedisToken(token);
 
     if (!record) {
       return res.status(404).json({ success: false, error: "Token not found" });
     }
 
-    if (isTokenExpired(record)) {
+    if (record.expiresAt && new Date() > new Date(record.expiresAt)) {
       return res
         .status(410)
         .json({ success: false, error: "Token has expired" });
     }
 
-    await markBookingTokenUsed(token);
+    record.used = true;
+    await setRedisToken(token, record);
 
     return res.status(200).json({ success: true });
   } catch (error) {
