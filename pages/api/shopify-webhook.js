@@ -88,6 +88,46 @@ async function saveBookingToken(record) {
   }
 }
 
+// ── Helper: send booking confirmation email via Resend ───────────────────────
+
+async function sendBookingEmail({ to, firstName, bookingLink }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "RESEND_API_KEY is not set. Add it to Vercel Environment Variables.",
+    );
+  }
+
+  console.log("[shopify-webhook] Sending email to:", to);
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "Oahu Med Spa <onboarding@resend.dev>",
+      to,
+      subject: "Book Your Consultation",
+      html: `
+        <p>Hi ${firstName},</p>
+        <p>Thank you for your purchase.</p>
+        <p>Please book your consultation here:</p>
+        <a href="${bookingLink}">${bookingLink}</a>
+        <p>This link is private and expires soon.</p>
+      `,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`Resend API error (${res.status}): ${errorBody}`);
+  }
+
+  console.log("[shopify-webhook] Email sent successfully");
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -158,6 +198,14 @@ export default async function handler(req, res) {
       // Build the protected booking link.
       const bookingLink = `${BOOKING_URL_BASE}?token=${token}`;
       console.log("[shopify-webhook] Booking link created:", bookingLink);
+
+      // Send the booking link to the customer via email.
+      try {
+        await sendBookingEmail({ to: email, firstName, bookingLink });
+      } catch (emailError) {
+        console.error("[shopify-webhook] Failed to send email:", emailError);
+        // Non-fatal — token is already saved; log and continue.
+      }
 
       return res.status(200).json({
         success: true,
