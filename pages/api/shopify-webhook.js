@@ -107,7 +107,7 @@ async function sendBookingEmail({ to, firstName, bookingLink }) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Oahu Med Spa <onboarding@resend.dev>",
+      from: "Oahu Med Spa <noreply@oahumedspa.ai>",
       to,
       subject: "Book Your Consultation",
       html: `
